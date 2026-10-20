@@ -1,0 +1,13 @@
+export { authService } from './auth.service';
+export { academicService } from './academic.service';
+export { studentService } from './student.service';
+export { notesService } from './notes.service';
+export { codeService } from './code.service';
+export { testsService } from './tests.service';
+export { analyticsService } from './analytics.service';
+export { predictionService } from './predictions.service';
+export { videoService } from './videos.service';
+export { plannerService } from './planner.service';
+export { notificationService } from './notifications.service';
+export { bookmarkService, ENTITY_TYPES } from './bookmarks.service';
+export { adminService, ADMIN_ENTITIES } from './admin.service';

@@ -1,0 +1,12 @@
+{
+  "name": "bca-smartlearn-ai",
+  "version": "1.0.0",
+  "private": true,
+  "description": "BCA SmartLearn AI - Root Workspace",
+  "scripts": {
+    "dev": "node start-dev.js",
+    "start": "node start-dev.js",
+    "build": "npm run build --prefix client",
+    "seed": "npm run seed --prefix server"
+  }
+}
