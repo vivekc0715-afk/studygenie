@@ -12,6 +12,8 @@ const { z } = require('zod');
 
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
+const isProdEnv = process.env.NODE_ENV === 'production';
+
 const booleanish = (fallback) =>
   z
     .string()
@@ -30,7 +32,9 @@ const schema = z.object({
 
   MONGODB_URI: optionalString(''),
   MONGODB_DB_NAME: z.string().default('bca-smartlearn-ai'),
-  ENABLE_DEV_DB_FALLBACK: booleanish(true),
+  // The in-memory database is a development convenience; never default to it
+  // in production where it is not available.
+  ENABLE_DEV_DB_FALLBACK: booleanish(!isProdEnv),
 
   JWT_SECRET: optionalString(''),
   JWT_EXPIRES_IN: z.string().default('7d'),

@@ -17,11 +17,14 @@ const mongoose = require('mongoose');
 const { env, isProduction } = require('./env');
 const logger = require('./logger');
 
-// On Windows, local ISP DNS often rejects SRV records used by mongodb+srv://
-try {
-  dns.setServers(['8.8.8.8', '1.1.1.1']);
-} catch {
-  // Ignore if custom DNS cannot be set
+// On Windows, local ISP DNS often rejects SRV records used by mongodb+srv://.
+// Other platforms (Linux/serverless) resolve SRV records correctly already.
+if (process.platform === 'win32') {
+  try {
+    dns.setServers(['8.8.8.8', '1.1.1.1']);
+  } catch {
+    // Ignore if custom DNS cannot be set
+  }
 }
 
 mongoose.set('strictQuery', true);
@@ -44,9 +47,12 @@ async function connectToUri(uri) {
 }
 
 async function startMemoryServer() {
-  // Lazily required so production installs never load it.
+  // Lazily required so production installs never load it. Required via a
+  // variable so serverless bundlers don't try to trace/ship this dev-only,
+  // heavy package into the production function.
   const fs = require('fs');
-  const { MongoMemoryServer } = require('mongodb-memory-server');
+  const memoryModule = 'mongodb-memory-server';
+  const { MongoMemoryServer } = require(memoryModule);
   const dbPath = path.resolve(__dirname, '../../.data/mongo');
   fs.mkdirSync(dbPath, { recursive: true });
   memoryServer = await MongoMemoryServer.create({
