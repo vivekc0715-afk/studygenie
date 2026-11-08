@@ -11,7 +11,7 @@ const { env, isTest, features } = require('./config/env');
 const logger = require('./config/logger');
 const routes = require('./routes');
 const { notFoundHandler, errorHandler } = require('./middleware/error');
-const { mongoSanitize, originGuard } = require('./middleware/security');
+const { mongoSanitize, originGuard, isAllowedOrigin } = require('./middleware/security');
 const { ensureCsrfToken, csrfProtection } = require('./middleware/csrf');
 const { generalLimiter } = require('./middleware/rateLimit');
 
@@ -29,26 +29,17 @@ app.use(
   })
 );
 
-const allowedOrigins = env.CLIENT_URL.split(',')
-  .map((value) => value.trim().replace(/\/$/, ''))
-  .filter(Boolean);
+const corsOptions = {
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-csrf-token'],
+  maxAge: 86400,
+};
 
-app.use(
-  cors({
-    origin(origin, callback) {
-      if (!origin) return callback(null, true); // curl / same-origin / server-to-server
-      const normalised = origin.replace(/\/$/, '');
-      if (allowedOrigins.includes(normalised)) return callback(null, true);
-      if (env.NODE_ENV !== 'production' && /^http:\/\/localhost(:\d+)?$/.test(normalised)) {
-        return callback(null, true);
-      }
-      return callback(new Error('Not allowed by CORS'));
-    },
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'x-csrf-token'],
-    maxAge: 86400,
-  })
+// Built per request so the origin check can compare against the host actually
+// serving the API (same-origin deployments need no CLIENT_URL entry).
+app.use((req, res, next) =>
+  cors({ ...corsOptions, origin: (origin, callback) => callback(null, isAllowedOrigin(origin, req)) })(req, res, next)
 );
 
 /* --------------------------------------------------------------- parsing --- */

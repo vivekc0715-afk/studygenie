@@ -2,20 +2,24 @@
 
 const { User } = require('../models');
 const { ROLES, ACCOUNT_STATUS } = require('../config/constants');
-const { env } = require('../config/env');
+const { env, isProduction } = require('../config/env');
 const logger = require('../config/logger');
 
 async function ensureAdminUser() {
   try {
-    const adminEmail = env.SUPER_ADMIN_EMAIL || 'owner@bcasmartlearn.local';
+    const adminEmail = env.SUPER_ADMIN_EMAIL || (isProduction ? null : 'owner@bcasmartlearn.local');
     let admin = await User.findOne({
-      $or: [
-        { role: ROLES.SUPER_ADMIN },
-        { email: adminEmail },
-      ],
+      ...(adminEmail
+        ? { $or: [{ role: ROLES.SUPER_ADMIN }, { email: adminEmail }] }
+        : { role: ROLES.SUPER_ADMIN }),
     });
 
     if (!admin) {
+      if (isProduction && (!adminEmail || !env.SUPER_ADMIN_PASSWORD)) {
+        logger.warn('Super Admin was not created; set SUPER_ADMIN_EMAIL and SUPER_ADMIN_PASSWORD in production.');
+        return null;
+      }
+
       admin = new User({
         name: env.SUPER_ADMIN_NAME || 'Platform Owner',
         email: adminEmail,

@@ -194,6 +194,10 @@ const login = asyncHandler(async (req, res) => {
 const demoLogin = asyncHandler(async (req, res) => {
   const targetRole = req.body?.role === 'super_admin' ? ROLES.SUPER_ADMIN : ROLES.STUDENT;
 
+  if (isProduction && targetRole === ROLES.SUPER_ADMIN) {
+    throw ApiError.forbidden('Admin demo access is disabled in production. Sign in with your administrator account.');
+  }
+
   let user = await User.findOne({ role: targetRole });
 
   if (!user && targetRole === ROLES.STUDENT) {

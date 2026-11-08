@@ -210,25 +210,27 @@ export default function Login() {
             ⚡ Explore as Demo Student (Instant Access)
           </Button>
 
-          <Button
-            type="button"
-            variant="outline"
-            block
-            size="sm"
-            onClick={async () => {
-              try {
-                const user = await useAuthStore.getState().loginAsDemo('super_admin');
-                if (user) {
-                  notifySuccess('Admin Mode', 'Signed in as Platform Owner.');
-                  navigate('/admin', { replace: true });
+          {import.meta.env.DEV ? (
+            <Button
+              type="button"
+              variant="outline"
+              block
+              size="sm"
+              onClick={async () => {
+                try {
+                  const user = await useAuthStore.getState().loginAsDemo('super_admin');
+                  if (user) {
+                    notifySuccess('Admin Mode', 'Signed in as Platform Owner.');
+                    navigate('/admin', { replace: true });
+                  }
+                } catch (e) {
+                  toastError(e, 'Could not log in as admin.');
                 }
-              } catch (e) {
-                toastError(e, 'Could not log in as admin.');
-              }
-            }}
-          >
-            🔑 Admin Access (Platform Owner)
-          </Button>
+              }}
+            >
+              🔑 Admin Access (Platform Owner)
+            </Button>
+          ) : null}
         </div>
       </form>
     </AuthLayout>

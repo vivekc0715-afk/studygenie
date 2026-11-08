@@ -35,18 +35,49 @@ function mongoSanitize(req, _res, next) {
   next();
 }
 
+function normaliseOrigin(origin) {
+  return String(origin || '').trim().replace(/\/$/, '');
+}
+
+/** Public host serving the current request (Vercel terminates TLS upstream). */
+function requestHost(req) {
+  const forwarded = req.get('x-forwarded-host');
+  return (forwarded || req.get('host') || '').split(',')[0].trim().toLowerCase();
+}
+
+/**
+ * True when the browser origin is the very host serving the API. The SPA and
+ * the API share one domain in deployment, and a cross-site attacker can never
+ * forge a matching Origin/Host pair, so this stays CSRF-safe.
+ */
+function isSameOrigin(origin, req) {
+  const host = requestHost(req);
+  if (!host) return false;
+  try {
+    return new URL(origin).host.toLowerCase() === host;
+  } catch {
+    return false;
+  }
+}
+
+/** Single source of truth for which browser origins may call the API. */
+function isAllowedOrigin(origin, req) {
+  if (!origin) return true; // non-browser client (curl, tests, server-to-server)
+
+  const normalised = normaliseOrigin(origin);
+  const allowed = env.CLIENT_URL.split(',').map(normaliseOrigin).filter(Boolean);
+
+  if (allowed.includes(normalised)) return true;
+  if (isSameOrigin(normalised, req)) return true;
+  if (!isProduction && /^http:\/\/localhost(:\d+)?$/.test(normalised)) return true;
+
+  return false;
+}
+
 /** Rejects state-changing requests coming from unknown browser origins. */
 function originGuard(req, _res, next) {
-  const origin = req.get('origin');
-  if (!origin) return next(); // non-browser client (curl, tests, server-to-server)
-
-  const allowed = env.CLIENT_URL.split(',').map((value) => value.trim().replace(/\/$/, ''));
-  const normalised = origin.replace(/\/$/, '');
-
-  if (allowed.includes(normalised)) return next();
-  if (!isProduction && /^http:\/\/localhost(:\d+)?$/.test(normalised)) return next();
-
+  if (isAllowedOrigin(req.get('origin'), req)) return next();
   return next(ApiError.forbidden('This origin is not allowed to call the API.'));
 }
 
-module.exports = { mongoSanitize, originGuard, sanitizeValue };
+module.exports = { mongoSanitize, originGuard, isAllowedOrigin, sanitizeValue };
