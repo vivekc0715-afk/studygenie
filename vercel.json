@@ -10,7 +10,17 @@
     }
   },
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/index" },
-    { "source": "/((?!api/)[^.]*)", "destination": "/index.html" }
+    {
+      "source": "/api/:path*",
+      "destination": "/api/index",
+      "transforms": [
+        {
+          "type": "request.path",
+          "op": "set",
+          "args": "/api/:path*"
+        }
+      ]
+    },
+    { "source": "/:path*", "destination": "/index.html" }
   ]
 }
